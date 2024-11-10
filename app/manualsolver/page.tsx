@@ -10,6 +10,7 @@ import {
 } from "../utils/actions";
 import { Button } from "@/components/ui/button";
 import Title from "@/components/SodukoBoard/Title";
+import { extractSudokuFromImage } from "../utils/ocr";
 
 const ManualSolver: React.FC = () => {
   const [board, setBoard] = useState<SudokuCell[][]>(
@@ -20,6 +21,31 @@ const ManualSolver: React.FC = () => {
   const [conflicts, setConflicts] = useState<{ row: number; col: number }[]>(
     []
   );
+  const [loading, setLoading] = useState(false);
+const handleImageUpload = async (
+  event: React.ChangeEvent<HTMLInputElement>
+) => {
+  const file = event.target.files?.[0];
+  if (file) {
+    setLoading(true);
+    try {
+      const boardFromImage = await extractSudokuFromImage(file);
+      if (boardFromImage) {
+        const newBoard = boardFromImage.map((row) =>
+          row.map((value) => ({ value, isEditable: value === 0 }))
+        );
+        setBoard(newBoard);
+        alert("Sudoku board recognized successfully!");
+      } else {
+        alert("Failed to recognize Sudoku board.");
+      }
+    } catch (error) {
+      alert("Error processing the image.");
+    } finally {
+      setLoading(false);
+    }
+  }
+};
 
   const handleChange = (row: number, col: number, value: string) => {
     if (!/^[1-9]?$/.test(value)) return;
@@ -42,7 +68,7 @@ const ManualSolver: React.FC = () => {
 
   const handleSolve = () => {
     const flatBoard = board.map((row) => row.map((cell) => cell.value));
-    const solvedBoard = solveformanual(flatBoard)
+    const solvedBoard = solveformanual(flatBoard);
     if (solvedBoard !== null && checkSolution(solvedBoard)) {
       if (solvedBoard) {
         const updatedBoard = solvedBoard.map((row) =>
@@ -143,6 +169,19 @@ const ManualSolver: React.FC = () => {
         <Button className="bg-red-500 text-white" onClick={handleReset}>
           Reset
         </Button>
+        <label
+          htmlFor="upload-image"
+          className="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          Upload Image
+        </label>
+        <input
+          type="file"
+          id="upload-image"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageUpload}
+        />
       </div>
     </div>
   );
